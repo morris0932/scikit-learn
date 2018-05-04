@@ -1,0 +1,73 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd #this is how I usually import pandas
+import sys #only needed to determine Python version number
+from datetime import datetime
+import matplotlib.dates as mdates
+#import matplotlib #only needed to determine Matplotlib version number
+
+from sklearn.linear_model import Lasso
+CSV_File = 'C:/Users/jchang/Desktop/forecast2.csv'
+df = pd.read_csv ( CSV_File,sep=',',engine='python') 
+df=df.fillna(0)
+
+
+#print (df)
+train_ration = 0.9#訓練資料占比
+source_data_rol = 28
+
+
+train_rol = int (source_data_rol* train_ration )
+vailidaion_rol = source_data_rol - train_rol -1
+X=df.values[1:train_rol,1:15]  #train_x, 1:19
+y=df.values[1:train_rol,0]    # train_y 
+X_All=df.values[0:60,1:15]
+y_org=df.values[:,0]
+X_val=df.values[vailidaion_rol:source_data_rol,1:15] #test_x
+y_val=df.values[vailidaion_rol:source_data_rol,0]   #test_y
+
+Date_show=df.values[0:60,15]
+
+good_alpha = 0
+good_scope = 0 
+
+for i in range (1,1000):
+ alpha_predic = i 
+ lasso = Lasso(alpha=alpha_predic,fit_intercept= False ,positive=True).fit(X,y)
+ y_predict=lasso.predict(X_All)
+ if lasso.score(X_val,y_val) > good_scope:
+   good_alpha = i
+   good_scope = lasso.score(X_val,y_val)
+  
+print ( good_alpha  , good_scope , i )
+
+alpha_predic = good_alpha 
+lasso = Lasso(alpha=alpha_predic,fit_intercept= False ,positive=True).fit(X,y)
+y_predict=lasso.predict(X_All)
+    
+print("Model intercept: ",lasso.intercept_)
+print("Model Alpha: ",lasso)
+print("Training set score:{:.8f} ".format(lasso.score(X,y)))
+print("Validation set score: {:.8f}".format(lasso.score(X_val,y_val)))      
+print("Number of features used:{}".format(np.sum(lasso.coef_ !=0)))
+np.savetxt("lasso.coef_", lasso.coef_, delimiter=",")
+
+plt.grid(axis='both')
+plt.plot(y_predict, label="predict by Python")
+plt.plot(y_org, label="Original fron CSV ")
+
+plt.ylabel("Throughput (Gbps)")
+plt.xlabel("Month-from-2016-Jan to 2020-Dec")
+
+
+
+
+plt.axis([0, 60,60,115],lw=14)
+
+plt.legend()
+plt.savefig("test.png")
+
+plt.show()
+#for n in range(1,42):
+ #print (n,y_predict[n] , df.values[n,0],format (y_predict[n]-df.values[n,0]/df.values[n,0]*100)
+
